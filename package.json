@@ -1,0 +1,24 @@
+{
+  "name": "volunteer-desk-mcp",
+  "version": "1.0.0",
+  "description": "An MCP server that connects Claude to a volunteer-organizing tool for a small food pantry (synthetic data only).",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/src/index.js",
+    "reset": "node dist/scripts/reset.js",
+    "test": "tsc && node --test \"dist/test/**/*.test.js\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.9.3"
+  }
+}
