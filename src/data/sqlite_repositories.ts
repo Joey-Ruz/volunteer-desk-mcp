@@ -222,13 +222,31 @@ export class SqliteContactRepository implements ContactRepository {
     return rows.map(toContactAttempt);
   }
 
-  insert(attempt: NewContactAttempt): ContactAttempt {
-    const result = this.db
-      .prepare(
-        `INSERT INTO contact_attempts (volunteer_id, contacted_at, channel, outcome, note)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
-      .run(attempt.volunteerId, attempt.contactedAt, attempt.channel, attempt.outcome, attempt.note);
-    return { id: Number(result.lastInsertRowid), ...attempt };
+  insertAll(attempts: NewContactAttempt[]): ContactAttempt[] {
+    const statement = this.db.prepare(
+      `INSERT INTO contact_attempts (volunteer_id, contacted_at, channel, outcome, note)
+       VALUES (?, ?, ?, ?, ?)`,
+    );
+    const saved: ContactAttempt[] = [];
+
+    // One transaction: if any row fails, the rows before it are undone too.
+    this.db.exec('BEGIN');
+    try {
+      for (const attempt of attempts) {
+        const result = statement.run(
+          attempt.volunteerId,
+          attempt.contactedAt,
+          attempt.channel,
+          attempt.outcome,
+          attempt.note,
+        );
+        saved.push({ id: Number(result.lastInsertRowid), ...attempt });
+      }
+      this.db.exec('COMMIT');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
+    }
+    return saved;
   }
 }

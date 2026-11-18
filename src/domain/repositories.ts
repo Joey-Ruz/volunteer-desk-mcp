@@ -25,5 +25,6 @@ export interface VolunteerRepository {
 
 export interface ContactRepository {
   listForVolunteer(volunteerId: number): ContactAttempt[];
-  insert(attempt: NewContactAttempt): ContactAttempt;
+  /** Saves every attempt or none of them. Returns the saved rows in the order given. */
+  insertAll(attempts: NewContactAttempt[]): ContactAttempt[];
 }

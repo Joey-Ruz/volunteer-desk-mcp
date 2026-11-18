@@ -1,24 +1,39 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { CONTACT_CHANNELS, CONTACT_OUTCOMES } from '../domain/types.js';
-import type { ContactLogService } from '../services/contact_log_service.js';
+import {
+  MAX_CONTACTS_PER_GROUP,
+  type ContactEntry,
+  type ContactLogService,
+} from '../services/contact_log_service.js';
 import { WRITE_ANNOTATIONS, toToolResult } from './tool_result.js';
+
+const contactSchema = z.object({
+  volunteer_id: z.number().int().describe('The volunteer who was contacted.'),
+  channel: z.enum(CONTACT_CHANNELS).describe('How they were contacted.'),
+  outcome: z.enum(CONTACT_OUTCOMES).describe('What happened.'),
+  note: z.string().max(280).optional().describe('Optional short note.'),
+});
 
 export function registerContactTools(server: McpServer, contactLog: ContactLogService): void {
   server.registerTool(
     'log_contact_attempt',
     {
-      title: 'Log a contact attempt',
+      title: 'Log contact attempts',
       description:
-        'Records that someone reached out to a volunteer. This is a two-step tool. ' +
-        'Call it WITHOUT confirmation_token first: it saves nothing and returns a preview plus a ' +
-        'short-lived token. Show the preview to the user, and only after they approve, call it ' +
-        'again with the same details and that token to save. This tool never sends any message.',
+        'Records that someone reached out to one or more volunteers. Put every contact to log in ' +
+        `one "contacts" list (1 to ${MAX_CONTACTS_PER_GROUP}); the same volunteer may appear twice, ` +
+        'for example a call and then a text. This is a two-step tool. Call it WITHOUT ' +
+        'confirmation_token first: it saves nothing and returns one preview of the whole group ' +
+        'plus a short-lived token. Show the preview to the user, and only after they approve, ' +
+        'call it again with the same contacts in the same order and that token to save all of ' +
+        'them at once. This tool never sends any message.',
       inputSchema: {
-        volunteer_id: z.number().int().describe('The volunteer who was contacted.'),
-        channel: z.enum(CONTACT_CHANNELS).describe('How they were contacted.'),
-        outcome: z.enum(CONTACT_OUTCOMES).describe('What happened.'),
-        note: z.string().max(280).optional().describe('Optional short note.'),
+        contacts: z
+          .array(contactSchema)
+          .min(1)
+          .max(MAX_CONTACTS_PER_GROUP)
+          .describe('Every contact attempt to log in this group.'),
         confirmation_token: z
           .string()
           .optional()
@@ -26,15 +41,17 @@ export function registerContactTools(server: McpServer, contactLog: ContactLogSe
       },
       annotations: WRITE_ANNOTATIONS,
     },
-    async ({ volunteer_id, channel, outcome, note, confirmation_token }) => {
+    async ({ contacts, confirmation_token }) => {
+      const entries: ContactEntry[] = contacts.map((contact) => {
+        return {
+          volunteerId: contact.volunteer_id,
+          channel: contact.channel,
+          outcome: contact.outcome,
+          note: contact.note,
+        };
+      });
       return toToolResult(
-        contactLog.logContactAttempt({
-          volunteerId: volunteer_id,
-          channel,
-          outcome,
-          note,
-          confirmationToken: confirmation_token,
-        }),
+        contactLog.logContactAttempts({ contacts: entries, confirmationToken: confirmation_token }),
       );
     },
   );

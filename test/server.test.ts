@@ -56,3 +56,29 @@ test('the server seeds itself on first start and answers a lookup', async () => 
   const events = JSON.parse(content[0]?.text ?? '[]') as unknown[];
   assert.equal(events.length, 6);
 });
+
+test('a group of contacts previews and saves with one token over stdio', async () => {
+  const contacts = [
+    { volunteer_id: 14, channel: 'call', outcome: 'left_message' },
+    { volunteer_id: 3, channel: 'text', outcome: 'reached' },
+  ];
+
+  const preview = await client.callTool({ name: 'log_contact_attempt', arguments: { contacts } });
+  assert.notEqual(preview.isError, true);
+  const previewContent = preview.content as { type: string; text: string }[];
+  const previewBody = JSON.parse(previewContent[0]?.text ?? '{}') as {
+    count: number;
+    confirmationToken: string;
+  };
+  assert.equal(previewBody.count, 2);
+
+  const saved = await client.callTool({
+    name: 'log_contact_attempt',
+    arguments: { contacts, confirmation_token: previewBody.confirmationToken },
+  });
+  assert.notEqual(saved.isError, true);
+  const savedContent = saved.content as { type: string; text: string }[];
+  const savedBody = JSON.parse(savedContent[0]?.text ?? '{}') as { status: string; count: number };
+  assert.equal(savedBody.status, 'saved');
+  assert.equal(savedBody.count, 2);
+});

@@ -36,12 +36,17 @@ It may also mention the fully staffed Food Distribution in 9 days and the larger
 
 It drafts a personal email in the chat. **Nothing is sent**: the server has no send tool.
 
-### 4. Log the follow-up (confirm before write)
+### 4. Log the follow-ups in one go (confirm before write)
 
-> I just called Nadia and left a voicemail about it. Log that.
+> I just called Nadia and left a voicemail about it. I also texted Blake Merriweather and Umar Greystone, and both said they can help. Log all three.
 
-**Expected:** Claude calls `log_contact_attempt` **without** a token. The server saves nothing and returns a preview: Nadia Birchfield, call, left_message, today's time, a note, and a token like `confirm-3fa91c`. Claude shows the preview and asks you to approve it.
+**Expected:** Claude calls `log_contact_attempt` once, **without** a token, with all three contacts in one list. The server saves nothing and returns one preview of 3 entries, all stamped with the current time:
+- Nadia Birchfield: call, left_message, with a short note;
+- Blake Merriweather: text, reached;
+- Umar Greystone: text, reached.
 
-> Yes, save it.
+It also returns one token, like `confirm-6cdf93`. Claude shows the preview and asks you to approve it.
 
-**Expected:** Claude calls again with the same details and the token. The server confirms `saved`. (Optional on camera: ask question 2 again, and the list drops to **14**, without Nadia.)
+> Yes, save them.
+
+**Expected:** Claude calls again with the same three contacts and the token. The server confirms `saved` with a count of **3**: one approval for the whole group. (Optional on camera: ask question 2 again, and the list drops to **12**, without Nadia, Blake, or Umar.)

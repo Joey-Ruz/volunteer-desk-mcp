@@ -33,7 +33,7 @@ export function createServices(
   const eventRepository = new SqliteEventRepository(db);
   const volunteerRepository = new SqliteVolunteerRepository(db);
   const contactRepository = new SqliteContactRepository(db);
-  const tokens = new ConfirmationTokens<NewContactAttempt>(
+  const tokens = new ConfirmationTokens<NewContactAttempt[]>(
     CONFIRMATION_TOKEN_TTL_MINUTES,
     generateToken,
   );
